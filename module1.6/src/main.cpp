@@ -18,8 +18,10 @@ void loop() {
   // LDR pull-up: more light -> lower resistance -> lower voltage
   float lightPercent = (1.0f - raw / (float)ADC_MAX) * 100.0f;
 
+  uint32_t analogReadMV = analogReadMilliVolts(LDR_PIN);
+
   Serial.printf("Raw: %4d | Voltage: %.2fV | Light: %.1f%% | AnalogReadMV: %d | exp: %.1f%\n",
-                raw, voltage, lightPercent, analogReadMilliVolts(LDR_PIN), (1.0f - analogReadMilliVolts(LDR_PIN) / (VREF * 1000.0f)) * 100.0f);
+                raw, voltage, lightPercent, analogReadMV, (1.0f - analogReadMV / (VREF * 1000.0f)) * 100.0f);
 
   delay(READ_INTERVAL_MS);
 }
