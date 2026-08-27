@@ -2,7 +2,7 @@
  * Module 3.5 — Potentiometer-Controlled Servo (1:1 angle mapping)
  *
  * Board       : ESP32-S3-DevKitC-1
- * Potentiometer: wiper -> GPIO1  (ADC1 channel 0)
+ * Potentiometer: wiper -> GPIO11  (ADC2 channel 0)
  * Servo       : signal -> GPIO18 (LEDC PWM, 50 Hz)
  *
  * ── Task ─────────────────────────────────────────────────────────────────
@@ -106,7 +106,8 @@ static void servo_init(void)
 }
 
 // Drive the servo to `angle_deg`, measured from SERVO_MIN_DEG (leftmost).
-static void servo_set_angle(float angle_deg)
+// Returns the duty value that was written (handy for diagnostics).
+static uint32_t servo_set_angle(float angle_deg)
 {
     const float pulse_us = SERVO_MIN_PULSE_US +
         (angle_deg - SERVO_MIN_DEG) / (SERVO_MAX_DEG - SERVO_MIN_DEG) *
@@ -116,6 +117,7 @@ static void servo_set_angle(float angle_deg)
 
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, SERVO_CHANNEL, duty));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, SERVO_CHANNEL));
+    return duty;
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────
@@ -148,13 +150,13 @@ extern "C" void app_main(void)
         // Clip to the range shared by both the pot and the servo.
         const float servo_deg = std::clamp(pot_deg, OVERLAP_MIN_DEG, OVERLAP_MAX_DEG);
 
-        servo_set_angle(servo_deg);
+        const uint32_t duty = servo_set_angle(servo_deg);
 
         // Log only on a meaningful (>= 1 deg) change to keep the console readable.
         if (fabsf(servo_deg - last_logged_deg) >= 1.0f) {
             last_logged_deg = servo_deg;
-            ESP_LOGI(TAG, "raw=%4d  pot=%6.1f deg  servo angle (from left)=%6.1f deg",
-                     raw, pot_deg, servo_deg);
+            ESP_LOGI(TAG, "raw=%4d  pot=%6.1f deg  servo angle (from left)=%6.1f deg  duty=%lu/%d",
+                     raw, pot_deg, servo_deg, (unsigned long)duty, LEDC_MAX_DUTY);
         }
 
         vTaskDelay(pdMS_TO_TICKS(READ_PERIOD_MS));
