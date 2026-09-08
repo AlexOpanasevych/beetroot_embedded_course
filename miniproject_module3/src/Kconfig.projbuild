@@ -1,0 +1,22 @@
+menu "Subwoofer Wi-Fi Audio Configuration"
+
+    config WIFI_SSID
+        string "Wi-Fi SSID"
+        default "myssid"
+        help
+            Network the ESP32 joins as a station. This is the same LAN
+            the PC/phone sender must be on.
+
+    config WIFI_PASSWORD
+        string "Wi-Fi password"
+        default "mypassword"
+        help
+            WPA2/WPA3 password for WIFI_SSID.
+
+    config AUDIO_UDP_PORT
+        int "Audio UDP port"
+        default 3333
+        help
+            UDP port the ESP32 listens on for raw PCM audio packets.
+
+endmenu
