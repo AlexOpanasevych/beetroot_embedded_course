@@ -1,0 +1,28 @@
+menu "Desk Guardian Sentry Configuration"
+
+    config WIFI_SSID
+        string "Wi-Fi SSID"
+        default "myssid"
+        help
+            Network the ESP32 joins as a station to serve the status dashboard.
+
+    config WIFI_PASSWORD
+        string "Wi-Fi password"
+        default "mypassword"
+        help
+            WPA2/WPA3 password for WIFI_SSID.
+
+    config FAN_SETPOINT_TEMP_C
+        int "Fan PID setpoint temperature (deg C)"
+        default 28
+        help
+            Target temperature the PID loop tries to hold by spinning the fan.
+
+    config MOTION_COOLDOWN_MS
+        int "Motion alert cooldown (ms)"
+        default 5000
+        help
+            Minimum time between two motion "bark" reactions, so the buzzer/LEDs
+            don't retrigger continuously while someone lingers in front of the PIR.
+
+endmenu
