@@ -11,3 +11,7 @@
 // Configures the PIR input (with its GPIO ISR), buzzer and LED-eyes outputs,
 // and starts the task that waits on the motion semaphore.
 void pir_alarm_init(void);
+
+// Logs this window's ISR-duration stats (see crit_timing.h) and resets them
+// for the next window. Called periodically from cpu_monitor.cpp.
+void pir_alarm_log_and_reset_isr_timing(void);

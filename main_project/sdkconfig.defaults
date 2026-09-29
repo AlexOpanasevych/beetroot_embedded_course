@@ -1,0 +1,12 @@
+# Task watchdog is already enabled by default (CONFIG_ESP_TASK_WDT_INIT=y,
+# 5s timeout), but stock ESP-IDF only logs on timeout. Make a genuinely
+# hung task (aggregator_task, pir_task, bme280_task, cpu_monitor_task — all
+# registered in their own .cpp files) actually reboot the board instead of
+# just warning.
+CONFIG_ESP_TASK_WDT_PANIC=y
+
+# FreeRTOS run-time stats (cpu_monitor.cpp) — needed for
+# ulTaskGetIdleRunTimeCounter(). Auto-selects USE_TRACE_FACILITY and
+# USE_STATS_FORMATTING_FUNCTIONS; clock source defaults to the esp_timer
+# (1MHz, ~4290s wrap, handled via unsigned delta subtraction).
+CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y

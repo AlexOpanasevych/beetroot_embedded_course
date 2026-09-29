@@ -6,8 +6,10 @@
  * Producers (bme280_task, pir_alarm's motion task) only ever call
  * sensor_hub_post(); only aggregator_task (started by sensor_hub_init) ever
  * calls xQueueReceive() on the underlying queue, and it is the only writer
- * of system_state_t. Everyone else reads it through sensor_hub_get_state(),
- * which takes a snapshot under a mutex.
+ * of the sensor/motion fields of system_state_t. Non-sensor status fields
+ * (fan duty, Wi-Fi, CPU load) are written by their owners via the
+ * sensor_hub_set_*() calls below, under the same mutex. Everyone reads it
+ * through sensor_hub_get_state(), which takes a snapshot under that mutex.
  */
 #pragma once
 
@@ -49,6 +51,8 @@ typedef struct {
 
     bool wifi_connected;
     char ip_addr[16];
+
+    float cpu_load_pct;
 } system_state_t;
 
 // Creates the queue/mutex and starts aggregator_task. Call once, before any
@@ -67,3 +71,10 @@ void sensor_hub_get_state(system_state_t *out);
 void sensor_hub_set_fan_duty(uint32_t duty, uint32_t duty_max);
 
 void sensor_hub_set_wifi(bool connected, const char *ip);
+
+// Called from cpu_monitor.cpp's own task.
+void sensor_hub_set_cpu_load(float load_pct);
+
+// Logs this window's state-mutex hold-time stats (see crit_timing.h) and
+// resets them for the next window. Called periodically from cpu_monitor.cpp.
+void sensor_hub_log_and_reset_timing(void);

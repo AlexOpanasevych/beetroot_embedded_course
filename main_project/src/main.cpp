@@ -18,16 +18,15 @@
  *     amp, now serving a small built-in status dashboard instead of
  *     streaming audio.
  *
- * Wiring (Desk Guardian PCB pins unchanged, new sensors/actuator on
- * breadboard/jumpers — see README.md for the full table):
+ * Wiring (Desk Guardian PCB rev B, pcb/ — see README.md for the full table):
  *   IO4  - PIR_IN (existing, RC-filtered on the board)
  *   IO5  - buzzer control, via existing transistor driver
  *   IO6  - LED eye 1
  *   IO7  - LED eye 2
- *   IO8  - I2C SDA -> BME280
- *   IO9  - I2C SCL -> BME280
- *   IO18 - fan PWM, via a transistor + flyback diode (same technique as
- *          the board's own buzzer driver, breadboarded this time)
+ *   IO8  - I2C SDA -> BME280 header J3 (4.7k pull-up on board)
+ *   IO9  - I2C SCL -> BME280 header J3 (4.7k pull-up on board)
+ *   IO18 - fan PWM -> Q2 low-side driver + D2 flyback -> fan header J4
+ *          (same technique as the board's own buzzer driver)
  */
 #include "bme280.h"
 #include "sensor_hub.h"
@@ -35,12 +34,14 @@
 #include "fan_pid.h"
 #include "wifi_sta.h"
 #include "web_dashboard.h"
+#include "cpu_monitor.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/i2c_master.h"
 #include "nvs_flash.h"
 #include "esp_log.h"
+#include "esp_task_wdt.h"
 
 static const char *TAG = "MAIN_PROJECT";
 
@@ -53,6 +54,8 @@ static bool            s_bme280_ready = false;
 
 static void bme280_task(void *pvParameters)
 {
+    esp_task_wdt_add(NULL);
+
     while (1) {
         sensor_msg_t msg = {};
         msg.src = SRC_BME280;
@@ -66,6 +69,7 @@ static void bme280_task(void *pvParameters)
         }
 
         sensor_hub_post(&msg);
+        esp_task_wdt_reset();
         vTaskDelay(pdMS_TO_TICKS(BME280_POLL_MS));
     }
 }
@@ -103,8 +107,12 @@ extern "C" void app_main(void)
     fan_pid_init();
 
     ESP_LOGI(TAG, "Connecting to Wi-Fi...");
-    wifi_sta_init();
+    if (!wifi_sta_init()) {
+        ESP_LOGW(TAG, "Booting without Wi-Fi - PIR sentry and fan PID still run; "
+                      "dashboard will come online once a connection succeeds");
+    }
     web_dashboard_start();
+    cpu_monitor_start();
 
     xTaskCreate(bme280_task, "Bme280Task", 4096, NULL, 5, NULL);
 

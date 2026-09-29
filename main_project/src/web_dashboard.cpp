@@ -27,6 +27,7 @@ static const char *INDEX_HTML =
     "<div class='card'><div class='label'>Humidity</div><div class='value' id='hum'>--</div></div>"
     "<div class='card'><div class='label'>Pressure</div><div class='value' id='press'>--</div></div>"
     "<div class='card'><div class='label'>Fan duty</div><div class='value' id='fan'>--</div></div>"
+    "<div class='card'><div class='label'>CPU load</div><div class='value' id='cpu'>--</div></div>"
     "<div class='card' id='motion_card'><div class='label'>Motion</div><div class='value' id='motion'>--</div></div>"
     "<div class='card'><div class='label'>Motion events</div><div class='value' id='count'>--</div></div>"
     "</div>"
@@ -38,6 +39,7 @@ static const char *INDEX_HTML =
     "document.getElementById('hum').textContent=s.bme280_ok?s.humidity_pct.toFixed(0)+' %':'n/a';"
     "document.getElementById('press').textContent=s.bme280_ok?s.pressure_hpa.toFixed(0)+' hPa':'n/a';"
     "document.getElementById('fan').textContent=Math.round(100*s.fan_duty/s.fan_duty_max)+' %';"
+    "document.getElementById('cpu').textContent=s.cpu_load_pct.toFixed(0)+' %';"
     "document.getElementById('motion').textContent=s.motion_active?'ALERT':'clear';"
     "document.getElementById('motion_card').className='card'+(s.motion_active?' alert':'');"
     "document.getElementById('count').textContent=s.motion_count;"
@@ -63,10 +65,11 @@ static esp_err_t status_handler(httpd_req_t *req)
              "\"bme280_ok\":%s,\"temperature_c\":%.2f,\"humidity_pct\":%.2f,\"pressure_hpa\":%.2f,"
              "\"motion_active\":%s,\"motion_count\":%lu,\"last_motion_ms\":%lu,"
              "\"fan_duty\":%lu,\"fan_duty_max\":%lu,"
-             "\"wifi_connected\":%s}",
+             "\"wifi_connected\":%s,\"cpu_load_pct\":%.1f}",
              s.bme280_ok ? "true" : "false", s.temperature_c, s.humidity_pct, s.pressure_hpa,
              s.motion_active ? "true" : "false", (unsigned long)s.motion_count, (unsigned long)s.last_motion_ms,
-             (unsigned long)s.fan_duty, (unsigned long)s.fan_duty_max, s.wifi_connected ? "true" : "false");
+             (unsigned long)s.fan_duty, (unsigned long)s.fan_duty_max, s.wifi_connected ? "true" : "false",
+             (double)s.cpu_load_pct);
 
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, buf, HTTPD_RESP_USE_STRLEN);

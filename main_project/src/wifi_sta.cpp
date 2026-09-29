@@ -12,6 +12,12 @@ static const char *TAG = "WIFI_STA";
 
 #define WIFI_CONNECTED_BIT BIT0
 
+// How long wifi_sta_init() waits for the *initial* connection before giving
+// up and letting the rest of the system (PIR sentry, fan PID) boot without
+// it. Reconnection after this point is still handled by the disconnect
+// handler below, indefinitely, in the background.
+#define WIFI_CONNECT_TIMEOUT_MS 15000
+
 static EventGroupHandle_t s_wifi_event_group;
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -33,7 +39,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t e
     }
 }
 
-void wifi_sta_init(void)
+bool wifi_sta_init(void)
 {
     s_wifi_event_group = xEventGroupCreate();
 
@@ -57,5 +63,12 @@ void wifi_sta_init(void)
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "Connecting to SSID '%s'...", CONFIG_WIFI_SSID);
-    xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
+    EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT, pdFALSE, pdTRUE,
+                                            pdMS_TO_TICKS(WIFI_CONNECT_TIMEOUT_MS));
+    if (!(bits & WIFI_CONNECTED_BIT)) {
+        ESP_LOGW(TAG, "No Wi-Fi after %d ms - continuing without it, will keep retrying in the background",
+                 WIFI_CONNECT_TIMEOUT_MS);
+        return false;
+    }
+    return true;
 }
